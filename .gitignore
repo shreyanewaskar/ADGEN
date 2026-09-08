@@ -1,0 +1,33 @@
+# ── Python ────────────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+.ipynb_checkpoints/
+
+# ── Virtual environment ──────────────────────────────────────────────────
+venv/
+env/
+.venv/
+
+# ── Model weights (too large for GitHub — 100MB hard limit) ────────────────
+# AE / VAE / Transformer / SD-Turbo checkpoints all live here. Track only
+# small config/tokenizer files if needed; keep weight files out of git and
+# document how to re-download/regenerate them instead (e.g. in a README).
+Model/**/*.h5
+Model/**/*.keras
+Model/**/*.safetensors
+Model/**/*.bin
+Model/**/*.msgpack
+Model/**/*.zip
+Model/sd-turbo-saved-model/
+
+# Orphaned Keras extraction temp dirs (seen locally as Model/tmp*/)
+Model/tmp*/
+
+# ── Generated / local test output ───────────────────────────────────────
+test_output.png
+
+# ── OS / editor cruft ────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp

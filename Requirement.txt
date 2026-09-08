@@ -1,0 +1,36 @@
+# ── UI ──────────────────────────────────────────────────────────────────────
+streamlit==1.62.0
+
+# ── PyTorch ──────────────────────────────────────────────────────────────────
+# CPU build is installed by default (torch 2.13.0+cpu).
+# For GPU (NVIDIA), replace with the CUDA build:
+#   pip install torch==2.3.1 torchvision==0.18.1 --index-url https://download.pytorch.org/whl/cu121
+torch==2.13.0
+
+# ── Diffusion model: stabilityai/sd-turbo ────────────────────────────────────
+# SD-Turbo is a distilled Stable Diffusion 2.1 model (512x512).
+# It runs in 1-4 inference steps with guidance_scale=0.0.
+# Downloaded automatically from HuggingFace Hub on first run (~5 GB).
+# Pipeline used: diffusers.AutoPipelineForText2Image
+diffusers==0.40.0
+accelerate==0.30.1
+safetensors==0.8.0
+
+# ── Transformer (fine-tuned ad-copy model) ───────────────────────────────────
+# Uses AutoTokenizer + AutoModelForCausalLM from transformers.
+# Local model loaded from: Model/transformer_best (2)/
+transformers==5.16.1
+
+# ── HuggingFace Hub (shared dependency) ──────────────────────────────────────
+huggingface_hub==1.29.0
+
+# ── Image / data ─────────────────────────────────────────────────────────────
+Pillow==10.3.0
+numpy==1.26.4
+pandas==2.3.3
+
+# ── About page: Keras autoencoder demo (Model/autoencoder_full.keras) ────────
+tensorflow==2.16.1
+
+# ── Optional: Gradio UI (postermaking.py standalone mode) ────────────────────
+# gradio==4.36.1
