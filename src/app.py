@@ -18,6 +18,54 @@ SRC_DIR = os.path.dirname(os.path.abspath(__file__))
 if SRC_DIR not in sys.path:
     sys.path.insert(0, SRC_DIR)
 
+# ─── Basic content safety (prompt-level) ─────────────────────────────────────
+# NOTE: this is a lightweight keyword check on user-provided TEXT only. It is
+# not a substitute for an image-level NSFW classifier — the local SD-Turbo
+# model folder has no safety_checker component saved, so generated images
+# are not moderated. For a public/production deployment, layer a proper
+# image-level safety checker on top of this.
+UNSAFE_KEYWORDS = [
+    "nude", "naked", "nsfw", "porn", "pornographic", "sexual intercourse",
+    "explicit sexual", "gore", "graphic violence", "murder", "suicide",
+    "self-harm", "self harm", "firearm", "assault rifle", "cocaine",
+    "heroin", "meth ", "nazi", "terrorist attack",
+]
+
+MAX_GENERATIONS_PER_SESSION = 15
+
+
+def check_content_safety(*texts) -> str | None:
+    """Returns a warning message if any text contains a disallowed term,
+    else None. Basic keyword safeguard — see note above."""
+    blob = " ".join(t or "" for t in texts).lower()
+    for kw in UNSAFE_KEYWORDS:
+        if kw in blob:
+            return (
+                "Your input contains content that isn't allowed here. "
+                "Please revise your product description/prompt and try again."
+            )
+    return None
+
+
+def strip_exif(pil_img: Image.Image) -> Image.Image:
+    """Rebuild the image from raw pixels, dropping EXIF/metadata (may
+    contain GPS/device info) from uploaded photos."""
+    import numpy as np
+    arr = np.asarray(pil_img.convert("RGB"))
+    return Image.fromarray(arr)
+
+
+def check_rate_limit() -> str | None:
+    """Very basic per-session generation cap (resets on page refresh — not
+    a robust server-side limiter, but a reasonable default without adding
+    an auth/backend layer)."""
+    if st.session_state.get("generation_count", 0) >= MAX_GENERATIONS_PER_SESSION:
+        return (
+            f"You've reached this session's limit of {MAX_GENERATIONS_PER_SESSION} "
+            "generations. Refresh the page to start a new session."
+        )
+    return None
+
 # ─── Page Config ────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="AdGen AI – Advertisement Poster Creator",
@@ -310,11 +358,12 @@ def run_vae_reconstruction(pil_img: Image.Image) -> Image.Image:
 
 # ─── Session State ───────────────────────────────────────────────────────────
 defaults = {
-    "ad_status":      "New",
-    "input_mode":     "custom",   # "custom" | "text" | "restyle"
-    "poster_result":  None,
-    "restyle_result": None,
-    "page":           "create",   # "create" | "about"
+    "ad_status":        "New",
+    "input_mode":       "custom",   # "custom" | "text" | "restyle"
+    "poster_result":    None,
+    "restyle_result":   None,
+    "page":             "create",   # "create" | "about"
+    "generation_count": 0,
 }
 for k, v in defaults.items():
     if k not in st.session_state:
@@ -578,7 +627,7 @@ if st.session_state.page == "create":
                 key="product_image"
             )
             if uploaded:
-                pil_img = Image.open(uploaded)
+                pil_img = strip_exif(Image.open(uploaded))
                 st.image(pil_img, use_container_width=True)
                 st.markdown(
                     '<div style="text-align:center;margin-top:6px;">'
@@ -684,7 +733,7 @@ if st.session_state.page == "create":
                 key="restyle_image"
             )
             if restyle_upload:
-                restyle_src_img = Image.open(restyle_upload)
+                restyle_src_img = strip_exif(Image.open(restyle_upload))
                 st.image(restyle_src_img, use_container_width=True)
             else:
                 restyle_src_img = None
@@ -733,6 +782,16 @@ if st.session_state.page == "create":
                 st.warning("Please describe how you'd like to restyle the image.")
                 st.stop()
 
+            safety_msg = check_content_safety(restyle_prompt_val)
+            if safety_msg:
+                st.warning(safety_msg)
+                st.stop()
+
+            rate_msg = check_rate_limit()
+            if rate_msg:
+                st.warning(rate_msg)
+                st.stop()
+
             progress_placeholder = st.empty()
             with progress_placeholder.container():
                 st.markdown("""
@@ -756,6 +815,7 @@ if st.session_state.page == "create":
                     "restyled": restyled_img,
                     "prompt":   prompt_used,
                 }
+                st.session_state.generation_count += 1
             except Exception as e:
                 progress_placeholder.empty()
                 st.error(f"Restyling failed: {e}")
@@ -833,6 +893,16 @@ if st.session_state.page == "create":
                 st.warning("Please select a Category.")
                 st.stop()
 
+            safety_msg = check_content_safety(active_title, active_desc)
+            if safety_msg:
+                st.warning(safety_msg)
+                st.stop()
+
+            rate_msg = check_rate_limit()
+            if rate_msg:
+                st.warning(rate_msg)
+                st.stop()
+
             # ── Run the pipeline ─────────────────────────────────────────────
             progress_placeholder = st.empty()
             with progress_placeholder.container():
@@ -856,6 +926,7 @@ if st.session_state.page == "create":
                     "title":     active_title,
                     "category":  active_category,
                 }
+                st.session_state.generation_count += 1
             except Exception as e:
                 progress_placeholder.empty()
                 st.error(f"Generation failed: {e}")

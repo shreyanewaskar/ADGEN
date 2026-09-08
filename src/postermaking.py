@@ -235,7 +235,8 @@ def restyle_image(image, prompt, strength=0.35, num_inference_steps=12,
             decoded[0].permute(1, 2, 0).cpu().numpy() * 255
         ).round().astype("uint8")
 
-    return Image.fromarray(pixel_array), full_prompt
+    restyled = add_ai_disclosure_label(Image.fromarray(pixel_array))
+    return restyled, full_prompt
 
 # ---------------------------------------------------------------------------
 # 4. Ad copy generation
@@ -315,6 +316,33 @@ MOOD_PREFERENCE = {
     "cool_techy":     ["clean_modern","bold_impact","industrial_bold"],
     "soft_neutral":   ["handwritten_playful","script_romantic"],
 }
+
+def add_ai_disclosure_label(image, text="AI-generated with AdGen AI"):
+    """Stamp a small, unobtrusive 'AI-generated' disclosure label onto the
+    output image. Applied to every poster/restyle result so the disclosure
+    survives download/sharing, not just shown in the UI."""
+    img = image.convert("RGBA")
+    w, h = img.size
+    draw = ImageDraw.Draw(img)
+    font_size = max(11, int(w * 0.022))
+    try:
+        font = ImageFont.truetype(os.path.join(FONT_DIR, "Oswald.ttf"), font_size)
+    except Exception:
+        font = ImageFont.load_default()
+
+    bbox = draw.textbbox((0, 0), text, font=font)
+    text_w, text_h = bbox[2] - bbox[0], bbox[3] - bbox[1]
+    pad = int(font_size * 0.55)
+    box_w, box_h = text_w + pad * 2, text_h + pad * 2
+    x, y = w - box_w - 14, h - box_h - 14
+
+    overlay = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    odraw = ImageDraw.Draw(overlay)
+    odraw.rounded_rectangle([x, y, x + box_w, y + box_h], radius=8, fill=(0, 0, 0, 140))
+    odraw.text((x + pad, y + pad - bbox[1]), text, font=font, fill=(255, 255, 255, 235))
+
+    return Image.alpha_composite(img, overlay).convert("RGB")
+
 
 def ensure_font(style_key):
     repo_path, filename, instance = FONT_LIBRARY[style_key]
@@ -505,6 +533,7 @@ def text_to_poster(title, category, description="", seed=None):
     ad_copy       = generate_ad_copy(title, category, description)
     poster        = make_poster(image, tagline=ad_copy["tagline"],
                                 category=category, title=title, description=description)
+    poster        = add_ai_disclosure_label(poster)
     return {"image": image, "poster": poster, "prompt_used": prompt, "ad_copy": ad_copy}
 
 # ---------------------------------------------------------------------------

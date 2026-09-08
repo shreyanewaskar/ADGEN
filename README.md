@@ -47,3 +47,15 @@ Requirement.txt      # Python dependencies
 ## Tech Stack
 
 Streamlit · PyTorch · TensorFlow/Keras · HuggingFace Diffusers & Transformers
+
+## Ethical Use & Deployment Notes
+
+Before deploying this publicly, be aware of what is and isn't handled automatically:
+
+- **AI-generated disclosure** — every poster and restyled image has a small "AI-generated with AdGen AI" label stamped onto it before it's returned, so the disclosure survives download/sharing.
+- **Prompt-level content filter** — user-provided text (title, description, restyle prompt) is checked against a basic keyword blocklist before generation (`check_content_safety` in `src/app.py`). This is a lightweight safeguard, **not** a substitute for image-level moderation.
+- **No image-level safety checker is currently wired in** — the local SD-Turbo model folder (`Model/sd-turbo-saved-model/`) was saved without a `safety_checker` component, so `postermaking.py` loads the pipeline with `safety_checker=None`. If you deploy this publicly, add a proper NSFW/content classifier on generated output before shipping.
+- **EXIF stripping** — uploaded photos are rebuilt from raw pixels (`strip_exif`) to drop GPS/device metadata before processing.
+- **Per-session rate limit** — a soft cap (`MAX_GENERATIONS_PER_SESSION` in `src/app.py`, default 15) limits generations per browser session. This resets on refresh — it is not a robust abuse-prevention mechanism on its own; add server-side rate limiting/auth for production.
+- **Human review recommended** — ad copy quality is modest (Mean BLEU 0.081, Mean ROUGE-L 0.167 on the fine-tuned Transformer); treat generated output as a draft, not something to auto-publish to ad platforms unsupervised.
+- **Base model licensing** — confirm `stabilityai/sd-turbo`'s license terms cover your intended use (especially commercial/public deployment) before shipping.
