@@ -1,61 +1,191 @@
-# AdGen AI — Advertisement Poster Generator
+# AdGen AI — AI-Powered Advertisement Poster Generator
 
-Turn a product description (or an uploaded product photo) into a complete, professional advertisement poster — ad copy, product visual, and layout — using a pipeline of four AI models behind a single Streamlit app.
+## Project Team
+
+**Project Title:** AdGen AI — AI-Powered Advertisement Poster Generator
+
+**Team Members:**
+
+1. **Vaibhav Kawa** — Exam Seat No. 202301040040
+2. **Harshada Kolekar** — Exam Seat No. 202301040052
+3. **Ashwini Arude** — Exam Seat No. 202301040218
+4. **Shreya Newaskar** — Exam Seat No. 202301040240
+
+---
+
+## Project Description
+
+AdGen AI is an AI-powered advertisement poster generator that transforms a product description or uploaded product photograph into a complete, professional advertisement poster.
+
+The application integrates four AI models into a single Streamlit interface to generate advertisement copy, create product visuals, validate uploaded images, and restyle existing product photographs.
 
 ## Features
 
-- **Text Prompt / Custom Input modes** — describe your product in free text, or fill in structured fields (title, category, brand, status) with an optional product photo upload.
-- **AE-based upload quality gate** — uploaded photos are checked against a trained autoencoder; blurry, corrupted, or off-domain images are flagged before running generation.
-- **Restyle Photo (image-to-image)** — upload your exact product photo and describe a restyle ("clean white studio background", "outdoor lifestyle look"); the product stays recognizable while the style/background changes, via VAE-latent-space img2img.
-- **One-click poster generation** — fine-tuned Transformer writes tagline/caption/description, SD-Turbo generates the product visual, and the result is composed into a downloadable poster.
-- **About / Model Playground page** — upload any image to see side-by-side AE and VAE reconstructions, plus an aggregate model-quality metrics table (MSE, PSNR, SSIM, KL divergence, BLEU, ROUGE-L).
+- **Text Prompt / Custom Input Modes:** Describe a product using free text or enter structured information such as title, category, brand, and product status, with an optional product photo upload.
+- **Autoencoder-Based Image Quality Validation:** Uploaded photographs are checked using a trained Autoencoder (AE) to identify blurry, corrupted, or out-of-domain images before generation.
+- **Image Restyling:** Upload an existing product photograph and describe the desired appearance, such as a clean white studio background or an outdoor lifestyle setting. VAE latent-space image-to-image processing helps preserve product identity while modifying its style and background.
+- **One-Click Poster Generation:** A fine-tuned Transformer generates the advertisement tagline, caption, and description. SD-Turbo generates the product visual, and the application combines the generated content into a downloadable advertisement poster.
+- **About / Model Playground:** Explore side-by-side Autoencoder and VAE image reconstructions and view model evaluation metrics, including MSE, PSNR, SSIM, KL Divergence, BLEU, and ROUGE-L.
 
-## Models
+## Models Used
 
-| Model | Role |
+| Model | Purpose |
 |---|---|
-| Autoencoder (AE) | Upload quality/validation check |
-| Variational Autoencoder (VAE) | Image latent-space encoding — powers image-to-image restyling |
-| Fine-tuned Transformer | Ad copy generation (tagline, caption, description) |
-| SD-Turbo (Stable Diffusion, distilled) | Product visual generation |
+| Autoencoder (AE) | Uploaded image quality validation |
+| Variational Autoencoder (VAE) | Image encoding and image-to-image restyling |
+| Fine-tuned Transformer | Advertisement tagline, caption, and description generation |
+| SD-Turbo (Stable Diffusion) | Product visual generation |
 
-## Setup
+## Technology Stack
 
-```bash
-python -m venv venv
-venv\Scripts\activate        # Windows
-pip install -r Requirement.txt
-streamlit run src/app.py
-```
-
-> **Model weights are not included in this repository** (several GB total — over GitHub's file size limits). Place trained weights under `Model/` matching the structure referenced in `src/postermaking.py` and `src/app.py`:
-> - `Model/sd-turbo-saved-model/...` — SD-Turbo diffusion pipeline
-> - `Model/transformer_best (2)/` — fine-tuned ad-copy Transformer
-> - `Model/vae_best/` — VAE (diffusers `AutoencoderKL` format)
-> - `Model/autoencoder_full_1.keras` — trained Keras autoencoder
+- **Programming Language:** Python
+- **Frontend / Interface:** Streamlit
+- **Deep Learning:** PyTorch, TensorFlow, Keras
+- **Generative AI:** HuggingFace Diffusers and Transformers
+- **Image Generation:** Stable Diffusion Turbo
+- **Image Processing:** PIL, NumPy
 
 ## Project Structure
 
+```text
+AdGen-AI/
+│
+├── src/
+│   ├── app.py                 # Streamlit application interface
+│   └── postermaking.py        # Model loading and poster generation pipeline
+│
+├── Model/
+│   ├── sd-turbo-saved-model/
+│   ├── transformer_best (2)/
+│   ├── vae_best/
+│   └── autoencoder_full_1.keras
+│
+├── fonts/                     # Fonts used in poster design
+│
+├── Requirement.txt            # Python dependencies
+│
+└── README.md                  # Project documentation
 ```
-src/
-  app.py            # Streamlit UI
-  postermaking.py   # Model loading + generation pipeline
-fonts/              # Poster text fonts
-Requirement.txt      # Python dependencies
+
+## Installation and Setup
+
+Follow these steps to install the required dependencies and run the application locally.
+
+### 1. Clone the Repository
+
+```bash
+git clone <YOUR_GITHUB_REPOSITORY_URL>
 ```
 
-## Tech Stack
+Navigate to the project directory:
 
-Streamlit · PyTorch · TensorFlow/Keras · HuggingFace Diffusers & Transformers
+```bash
+cd AdGen-AI
+```
 
-## Ethical Use & Deployment Notes
+### 2. Create a Virtual Environment
 
-Before deploying this publicly, be aware of what is and isn't handled automatically:
+```bash
+python -m venv venv
+```
 
-- **AI-generated disclosure** — every poster and restyled image has a small "AI-generated with AdGen AI" label stamped onto it before it's returned, so the disclosure survives download/sharing.
-- **Prompt-level content filter** — user-provided text (title, description, restyle prompt) is checked against a basic keyword blocklist before generation (`check_content_safety` in `src/app.py`). This is a lightweight safeguard, **not** a substitute for image-level moderation.
-- **No image-level safety checker is currently wired in** — the local SD-Turbo model folder (`Model/sd-turbo-saved-model/`) was saved without a `safety_checker` component, so `postermaking.py` loads the pipeline with `safety_checker=None`. If you deploy this publicly, add a proper NSFW/content classifier on generated output before shipping.
-- **EXIF stripping** — uploaded photos are rebuilt from raw pixels (`strip_exif`) to drop GPS/device metadata before processing.
-- **Per-session rate limit** — a soft cap (`MAX_GENERATIONS_PER_SESSION` in `src/app.py`, default 15) limits generations per browser session. This resets on refresh — it is not a robust abuse-prevention mechanism on its own; add server-side rate limiting/auth for production.
-- **Human review recommended** — ad copy quality is modest (Mean BLEU 0.081, Mean ROUGE-L 0.167 on the fine-tuned Transformer); treat generated output as a draft, not something to auto-publish to ad platforms unsupervised.
-- **Base model licensing** — confirm `stabilityai/sd-turbo`'s license terms cover your intended use (especially commercial/public deployment) before shipping.
+### 3. Activate the Virtual Environment
+
+**For Windows:**
+
+```bash
+venv\Scripts\activate
+```
+
+**For Linux / macOS:**
+
+```bash
+source venv/bin/activate
+```
+
+### 4. Install Dependencies
+
+```bash
+pip install --upgrade pip
+pip install -r Requirement.txt
+```
+
+### 5. Download and Configure Model Weights
+
+The trained model weights are not included in this GitHub repository because of their large file sizes.
+
+Place the downloaded model weights inside the `Model/` directory using the following structure:
+
+- `Model/sd-turbo-saved-model/` — SD-Turbo diffusion pipeline.
+- `Model/transformer_best (2)/` — Fine-tuned advertisement copy Transformer.
+- `Model/vae_best/` — VAE model in Diffusers AutoencoderKL format.
+- `Model/autoencoder_full_1.keras` — Trained Keras Autoencoder.
+
+Ensure that all model files are placed in the paths referenced by `src/app.py` and `src/postermaking.py`.
+
+### 6. Run the Application
+
+Execute the following command from the project root directory:
+
+```bash
+streamlit run src/app.py
+```
+
+The application will open in your default browser. If it does not open automatically, visit:
+
+```text
+http://localhost:8501
+```
+
+## How to Use
+
+1. Launch the AdGen AI application.
+2. Select Text Prompt or Custom Input mode.
+3. Enter the product details or upload a product photograph.
+4. Allow the Autoencoder to validate the uploaded image.
+5. Generate advertisement content and product visuals.
+6. Optionally use the Restyle Photo feature to modify the product photograph.
+7. Preview the generated advertisement poster.
+8. Download the final advertisement poster.
+
+## Model Evaluation
+
+The Model Playground provides quantitative evaluation metrics for the implemented models.
+
+| Metric | Purpose |
+|---|---|
+| MSE | Measures reconstruction error |
+| PSNR | Measures image reconstruction quality |
+| SSIM | Measures structural similarity |
+| KL Divergence | Evaluates latent distribution differences |
+| BLEU | Evaluates generated text quality |
+| ROUGE-L | Measures textual similarity |
+
+**Transformer Evaluation Results:**
+- Mean BLEU: 0.081
+- Mean ROUGE-L: 0.167
+
+Generated advertisement content should be reviewed and edited before practical use.
+
+## Ethical Use and Deployment Considerations
+
+- **AI-Generated Disclosure:** Every generated poster and restyled image includes an "AI-generated with AdGen AI" label.
+- **Prompt-Level Content Filtering:** User-provided product information and restyling prompts are checked using a basic keyword blocklist through `check_content_safety` in `src/app.py`.
+- **Image Safety:** An image-level content moderation system is not currently integrated. Public deployment requires an appropriate content classifier to review generated images.
+- **EXIF Metadata Removal:** Uploaded images are reconstructed from raw pixels using `strip_exif` to remove GPS and device metadata.
+- **Generation Rate Limit:** A soft limit of 15 generations per browser session is configured through `MAX_GENERATIONS_PER_SESSION`. Production deployment should include server-side rate limiting and authentication.
+- **Human Review:** Generated advertisement copy should be reviewed before publication.
+- **Model Licensing:** Verify the licensing terms of `stabilityai/sd-turbo` and other model components before commercial or public deployment.
+
+## Future Enhancements
+
+- Improve advertisement copy generation quality.
+- Integrate image-level safety and content moderation.
+- Add additional poster templates and customization options.
+- Improve product consistency during image restyling.
+- Implement secure authentication and server-side rate limiting.
+- Support multiple product categories and advertising formats.
+
+## Conclusion
+
+AdGen AI demonstrates how multiple generative AI and deep learning models can work together to automate advertisement creation. By integrating image validation, latent-space image restyling, Transformer-based text generation, and Stable Diffusion-based visual generation, the project provides an end-to-end platform for creating professional product advertisement posters.
